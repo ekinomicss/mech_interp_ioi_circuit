@@ -41,7 +41,6 @@ class Config:
 cfg = Config()
 print(cfg)
 
-# Define LayerNorm class
 class LayerNorm(nn.Module):
     def __init__(self, cfg):
         super().__init__()
@@ -58,49 +57,52 @@ class LayerNorm(nn.Module):
         normalized = normalized * self.w + self.b
         return normalized
 
-# Test functions
-def rand_float_test(cls, shape):
-    cfg = Config(debug=True)
-    layer = cls(cfg).to(device)
-    random_input = torch.randn(shape).to(device)
-    print("Input shape:", random_input.shape)
-    output = layer(random_input)
-    print("Output shape:", output.shape)
-    return output
+class TestLayerNorm:
+    def __init__(self, cfg, device):
+        self.cfg = cfg
+        self.device = device
 
-def rand_int_test(cls, shape):
-    cfg = Config(debug=True)
-    layer = cls(cfg).to(device)
-    random_input = torch.randint(100, 1000, shape).to(device)
-    print("Input shape:", random_input.shape)
-    output = layer(random_input)
-    print("Output shape:", output.shape)
-    return output
+    def rand_float_test(self, cls, shape):
+        print("\nRunning rand_float_test...")
+        layer = cls(self.cfg).to(self.device)
+        random_input = torch.randn(shape).to(self.device)
+        print("Input shape:", random_input.shape)
+        output = layer(random_input)
+        print("Output shape:", output.shape)
+        return output
 
-def load_gpt2_test(cls, gpt2_layer, input_name, cache_dict=None):
-    cfg = Config(debug=True)
-    layer = cls(cfg).to(device)
-    layer.load_state_dict(gpt2_layer.state_dict(), strict=False)
+    def rand_int_test(self, cls, shape):
+        print("\nRunning rand_int_test...")
+        layer = cls(self.cfg).to(self.device)
+        random_input = torch.randint(100, 1000, shape).to(self.device)
+        print("Input shape:", random_input.shape)
+        output = layer(random_input)
+        print("Output shape:", output.shape)
+        return output
 
-    # Use provided cache or fallback to an empty dictionary
-    cache_dict = cache_dict if cache_dict else {}
-    
-    # Get reference input
-    reference_input = cache_dict[input_name] if isinstance(input_name, str) else input_name
-    reference_input = reference_input.to(device)
+    def load_gpt2_test(self, cls, gpt2_layer, input_name, cache_dict=None):
+        print("\nRunning load_gpt2_test...")
+        layer = cls(self.cfg).to(self.device)
+        layer.load_state_dict(gpt2_layer.state_dict(), strict=False)
 
-    print("Input shape:", reference_input.shape)
-    output = layer(reference_input)
-    print("Output shape:", output.shape)
+        cache_dict = cache_dict if cache_dict else {}
 
-    # Compare to reference output
-    reference_output = gpt2_layer(reference_input)
-    print("Reference output shape:", reference_output.shape)
+        reference_input = cache_dict[input_name] if isinstance(input_name, str) else input_name
+        reference_input = reference_input.to(self.device)
 
-    comparison = torch.isclose(output, reference_output, atol=1e-4, rtol=1e-3)
-    print(f"{comparison.sum()/comparison.numel():.2%} of the values are correct")
-    return output
+        print("Input shape:", reference_input.shape)
+        output = layer(reference_input)
+        print("Output shape:", output.shape)
 
-# Run tests
-_ = rand_float_test(LayerNorm, [2, 4, 768])
-_ = load_gpt2_test(LayerNorm, reference_gpt2.ln_final, "blocks.11.hook_resid_post", cache_dict=cache.cache_dict)
+        reference_output = gpt2_layer(reference_input)
+        print("Reference output shape:", reference_output.shape)
+
+        comparison = torch.isclose(output, reference_output, atol=1e-4, rtol=1e-3)
+        print(f"{comparison.sum()/comparison.numel():.2%} of the values are correct")
+        return output
+
+
+cfg = Config(debug=True)
+test_layer_norm = TestLayerNorm(cfg, device)
+_ = test_layer_norm.rand_float_test(LayerNorm, [2, 4, 768])
+_ = test_layer_norm.load_gpt2_test(LayerNorm, reference_gpt2.ln_final, "blocks.11.hook_resid_post", cache_dict=cache.cache_dict)
