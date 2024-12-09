@@ -9,7 +9,6 @@ import math
 from transformer_lens.utils import get_corner, gelu_new, tokenize_and_concatenate
 import tqdm.auto as tqdm
 
-# Load GPT-2 reference model
 reference_gpt2 = EasyTransformer.from_pretrained("gpt2-small", fold_ln=False, center_unembed=False, center_writing_weights=False)
 reference_text = "I am an amazing autoregressive, decoder-only, GPT-2 style transformer. One day I will exceed human level intelligence and take over the world!"
 tokens = reference_gpt2.to_tokens(reference_text)
@@ -17,11 +16,9 @@ print(tokens)
 print(tokens.shape)
 print(reference_gpt2.to_str_tokens(tokens))
 
-# Set device dynamically
 device = torch.device("mps" if torch.backends.mps.is_available() else ("cuda" if torch.cuda.is_available() else "cpu"))
 tokens = tokens.to(device)
 
-# Run the model and get logits and cache
 logits, cache = reference_gpt2.run_with_cache(tokens)
 print("Logits shape:", logits.shape)
 
